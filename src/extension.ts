@@ -149,7 +149,7 @@ class DashboardPanel {
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, data: RateLimitData) {
         this._panel = panel;
         this._htmlTemplate = fs.readFileSync(
-            path.join(extensionUri.fsPath, 'dashboard.html'),
+            path.join(extensionUri.fsPath, 'src', 'dashboard.html'),
             'utf8'
         );
         this._panel.webview.html = this._getHtml(data);

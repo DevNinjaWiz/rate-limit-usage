@@ -1,5 +1,9 @@
 # Development Conventions
 
+## Folder Structure
+- **Master Source Folder:** All coding-related files (TypeScript, HTML, SCSS, shared utilities, functions, etc.) **MUST** be located within the `src/` directory.
+- **Shared Utilities:** Place reusable logic in `src/shared/` or `src/utils/`.
+
 ## Code Style & Standards
 - **TypeScript:** Strict type checking is enforced. Follow **SOLID principles** for all class designs.
 - **SCSS & BEM:** Use SCSS for all styles.
