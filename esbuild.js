@@ -1,4 +1,6 @@
 const esbuild = require("esbuild");
+const fs = require("fs");
+const path = require("path");
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -24,6 +26,11 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
+	const copyDashboardTemplate = () => {
+		fs.mkdirSync("dist", { recursive: true });
+		fs.copyFileSync(path.join("src", "dashboard.html"), path.join("dist", "dashboard.html"));
+	};
+
 	const ctx = await esbuild.context({
 		entryPoints: [
 			'src/extension.ts'
@@ -43,9 +50,11 @@ async function main() {
 		],
 	});
 	if (watch) {
+		copyDashboardTemplate();
 		await ctx.watch();
 	} else {
 		await ctx.rebuild();
+		copyDashboardTemplate();
 		await ctx.dispose();
 	}
 }

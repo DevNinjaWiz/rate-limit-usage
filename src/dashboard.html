@@ -3,216 +3,524 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Codex Usage Dashboard</title>
+    <title>Rate Limit Usage Dashboard</title>
     <style>
         :root {
-            --bg-dark: #14141b;
-            --bg-card: #1e1e29;
-            --text-main: #f8f8f2;
-            --text-muted: #8b8b9b;
-            --accent-green: #50fa7b;
-            --accent-yellow: #f1fa8c;
-            --accent-blue: #8be9fd;
-            --accent-red: #ff5555;
-            --border-color: #2e2e3e;
+            --page-ink: #eef3ff;
+            --page-muted: #94a3c7;
+            --page-line: rgba(151, 169, 213, 0.22);
+            --page-panel: rgba(12, 19, 38, 0.78);
+            --page-panel-strong: rgba(8, 14, 29, 0.92);
+            --page-glow: rgba(58, 125, 255, 0.2);
+            --page-gold: #ffd166;
+            --page-green: #7cf29a;
+            --page-red: #ff8d7a;
+            --page-blue: #7db7ff;
+            --page-bg-top: #07101f;
+            --page-bg-bottom: #0d1831;
+            --shadow-strong: 0 22px 50px rgba(3, 8, 20, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px 40px;
             margin: 0;
+            padding: 28px;
+            color: var(--page-ink);
+            font-family: "Segoe UI", "Aptos", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(81, 132, 255, 0.24), transparent 34%),
+                radial-gradient(circle at right 20%, rgba(255, 209, 102, 0.14), transparent 28%),
+                linear-gradient(180deg, var(--page-bg-top) 0%, var(--page-bg-bottom) 100%);
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            font-size: 22px;
-            margin: 0;
-        }
-
-        .last-updated {
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 24px 0 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .section-title .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .dot.codex {
-            background: var(--accent-blue);
-        }
-
-        .grid-2 {
+        .dashboard {
+            max-width: 1180px;
+            margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 8px;
+            gap: 20px;
         }
 
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 18px 20px;
+        .dashboard__hero,
+        .dashboard__section,
+        .dashboard__trend {
+            background: var(--page-panel);
+            border: 1px solid var(--page-line);
+            border-radius: 24px;
+            box-shadow: var(--shadow-strong);
+            backdrop-filter: blur(10px);
         }
 
-        .card-label {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: bold;
+        .dashboard__hero {
+            padding: 28px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .dashboard__eyebrow {
+            margin: 0 0 10px;
+            font-size: 12px;
+            letter-spacing: 0.24em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--page-blue);
         }
 
-        .card-value {
-            font-size: 28px;
-            font-weight: bold;
-            margin: 8px 0 4px;
+        .dashboard__title {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1.06;
         }
 
-        .green {
-            color: var(--accent-green);
+        .dashboard__summary {
+            margin: 12px 0 0;
+            font-size: 14px;
+            color: var(--page-muted);
+            line-height: 1.6;
+            max-width: 54ch;
         }
 
-        .yellow {
-            color: var(--accent-yellow);
+        .dashboard__meta {
+            display: grid;
+            gap: 10px;
+            justify-items: end;
         }
 
-        .red {
-            color: var(--accent-red);
-        }
-
-        .progress-bar {
+        .dashboard__meta-chip {
             width: 100%;
-            height: 8px;
-            background: #2a2a3a;
-            border-radius: 4px;
-            margin: 8px 0 6px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: var(--page-panel-strong);
+            border: 1px solid var(--page-line);
+        }
+
+        .dashboard__meta-label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--page-muted);
+            margin-bottom: 6px;
+        }
+
+        .dashboard__meta-value {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .dashboard__section {
+            padding: 24px;
+        }
+
+        .dashboard__section-title {
+            margin: 0 0 16px;
+            font-size: 18px;
+        }
+
+        .usage-grid,
+        .metrics-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .usage-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .usage-card,
+        .metric-card {
+            background: var(--page-panel-strong);
+            border: 1px solid var(--page-line);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .usage-card__row,
+        .metric-card__row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .usage-card__label,
+        .metric-card__label {
+            margin: 0;
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--page-muted);
+        }
+
+        .usage-card__value,
+        .metric-card__value {
+            margin: 14px 0 8px;
+            font-size: 34px;
+            font-weight: 700;
+        }
+
+        .usage-card__status {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .usage-card__bar {
+            position: relative;
+            height: 12px;
+            margin: 14px 0 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
             overflow: hidden;
         }
 
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
+        .usage-card__fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), currentColor);
+            transition: width 180ms ease-out;
         }
 
-        .progress-fill.green {
-            background: var(--accent-green);
-        }
-
-        .progress-fill.yellow {
-            background: var(--accent-yellow);
-        }
-
-        .progress-fill.red {
-            background: var(--accent-red);
-        }
-
-        .card-footer {
+        .usage-card__foot {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-muted);
+            gap: 12px;
+            font-size: 12px;
+            color: var(--page-muted);
         }
 
-        .note {
-            margin-top: 24px;
-            padding: 14px 18px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+        .metric-card__helper {
+            margin: 8px 0 0;
             font-size: 12px;
-            color: var(--text-muted);
-            line-height: 1.6;
+            line-height: 1.5;
+            color: var(--page-muted);
+        }
+
+        .metric-card--accent .metric-card__value {
+            color: var(--page-blue);
+        }
+
+        .tone-green {
+            color: var(--page-green);
+        }
+
+        .tone-yellow {
+            color: var(--page-gold);
+        }
+
+        .tone-red {
+            color: var(--page-red);
+        }
+
+        .dashboard__trend {
+            padding: 24px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .dashboard__trend-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .trend-toggle {
+            display: inline-flex;
+            gap: 8px;
+            padding: 6px;
+            border-radius: 999px;
+            border: 1px solid var(--page-line);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .trend-toggle__button {
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            color: var(--page-muted);
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .trend-toggle__button.is-active {
+            color: var(--page-ink);
+            background: rgba(125, 183, 255, 0.14);
+        }
+
+        .trend-chart {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid var(--page-line);
+            background:
+                linear-gradient(180deg, rgba(125, 183, 255, 0.07), transparent 50%),
+                rgba(7, 13, 26, 0.8);
+            padding: 18px;
+        }
+
+        .trend-chart__grid {
+            position: absolute;
+            inset: 18px;
+            display: grid;
+            grid-template-rows: repeat(3, 1fr);
+            pointer-events: none;
+        }
+
+        .trend-chart__grid-line {
+            border-top: 1px solid rgba(151, 169, 213, 0.12);
+        }
+
+        .trend-chart__svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .trend-chart__path {
+            fill: none;
+            stroke: var(--page-blue);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 16px rgba(125, 183, 255, 0.45));
+        }
+
+        .trend-chart__labels,
+        .trend-chart__axis {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--page-muted);
+        }
+
+        .trend-chart__labels {
+            margin-top: 8px;
+        }
+
+        .trend-chart__axis {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 860px) {
+            body {
+                padding: 16px;
+            }
+
+            .dashboard__hero,
+            .usage-grid,
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard__meta {
+                justify-items: stretch;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Codex Usage Dashboard</h1>
-        <span class="last-updated">Updated: <span id="updatedAt"></span></span>
-    </div>
-
-    <div class="section-title"><span class="dot codex"></span>Codex</div>
-    <div class="grid-2">
-        <div class="card">
-            <div class="card-label">5-Hour Window</div>
-            <div id="codex5hValue" class="card-value"></div>
-            <div class="progress-bar"><div id="codex5hProgress" class="progress-fill"></div></div>
-            <div class="card-footer">
-                <span id="codex5hStatus"></span>
-                <span id="codex5hReset"></span>
+    <main class="dashboard">
+        <section class="dashboard__hero">
+            <div>
+                <p class="dashboard__eyebrow">Rate Limit Usage</p>
+                <h1 class="dashboard__title">Passive quota tracking with token and cost context.</h1>
+                <p class="dashboard__summary">
+                    Keep an eye on the rolling Codex limits, today's token usage, and what the same activity would cost through the API.
+                </p>
             </div>
-        </div>
-        <div class="card">
-            <div class="card-label">7-Day Rolling</div>
-            <div id="codexWeeklyValue" class="card-value"></div>
-            <div class="progress-bar"><div id="codexWeeklyProgress" class="progress-fill"></div></div>
-            <div class="card-footer">
-                <span id="codexWeeklyStatus"></span>
-                <span id="codexWeeklyReset"></span>
+            <div class="dashboard__meta">
+                <div class="dashboard__meta-chip">
+                    <span class="dashboard__meta-label">Updated</span>
+                    <span id="updatedAt" class="dashboard__meta-value"></span>
+                </div>
+                <div class="dashboard__meta-chip">
+                    <span class="dashboard__meta-label">Scan Summary</span>
+                    <span id="scanSummary" class="dashboard__meta-value"></span>
+                </div>
+                <div class="dashboard__meta-chip">
+                    <span class="dashboard__meta-label">Pricing Summary</span>
+                    <span id="pricingSummary" class="dashboard__meta-value"></span>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="note">
-        <strong>Note:</strong> Codex percentages are read from the latest <code>token_count</code> event in
-        <code>~/.codex/sessions/</code>, including the server-reported reset times for each window.
-    </div>
+        <section class="dashboard__section">
+            <h2 class="dashboard__section-title">Usage Monitoring</h2>
+            <div id="usageCards" class="usage-grid"></div>
+        </section>
+
+        <section class="dashboard__section">
+            <h2 class="dashboard__section-title">Today's Stats</h2>
+            <div id="todayStats" class="metrics-grid"></div>
+        </section>
+
+        <section class="dashboard__section">
+            <h2 class="dashboard__section-title">Financial Analysis</h2>
+            <div id="financialStats" class="metrics-grid"></div>
+        </section>
+
+        <section class="dashboard__trend">
+            <div class="dashboard__trend-head">
+                <div>
+                    <h2 class="dashboard__section-title">API Equivalent Trend</h2>
+                    <p id="trendTotal" class="dashboard__summary"></p>
+                </div>
+                <div id="trendToggle" class="trend-toggle" role="tablist" aria-label="Trend timeframe"></div>
+            </div>
+            <div class="trend-chart">
+                <div class="trend-chart__grid" aria-hidden="true">
+                    <div class="trend-chart__grid-line"></div>
+                    <div class="trend-chart__grid-line"></div>
+                    <div class="trend-chart__grid-line"></div>
+                </div>
+                <div id="trendAxis" class="trend-chart__axis"></div>
+                <svg viewBox="0 0 640 180" class="trend-chart__svg" aria-label="API equivalent trend chart">
+                    <path id="trendPath" class="trend-chart__path" d=""></path>
+                </svg>
+                <div id="trendLabels" class="trend-chart__labels"></div>
+            </div>
+        </section>
+    </main>
+
     <script id="dashboard-data" type="application/json">{{dashboardState}}</script>
     <script>
-        const stateElement = document.getElementById('dashboard-data');
-        const state = JSON.parse(stateElement?.textContent ?? '{}');
+        const state = JSON.parse(document.getElementById('dashboard-data')?.textContent ?? '{}');
 
-        const applyUsage = (prefix, usage) => {
-            const valueElement = document.getElementById(`${prefix}Value`);
-            const progressElement = document.getElementById(`${prefix}Progress`);
-            const statusElement = document.getElementById(`${prefix}Status`);
-            const resetElement = document.getElementById(`${prefix}Reset`);
+        const setText = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        };
 
-            if (!valueElement || !progressElement || !statusElement || !resetElement || !usage) {
+        const renderMetricCards = (containerId, metrics) => {
+            const container = document.getElementById(containerId);
+            if (!container) {
                 return;
             }
 
-            valueElement.textContent = `${usage.pct}%`;
-            valueElement.classList.add(usage.color);
-            progressElement.classList.add(usage.color);
-            progressElement.style.width = `${usage.pct}%`;
-            statusElement.textContent = usage.status;
-            resetElement.textContent = `Resets in ${usage.reset}`;
+            container.innerHTML = metrics
+                .map((metric) => {
+                    const accentClass = metric.tone === 'accent' ? ' metric-card--accent' : '';
+                    const helper = metric.helper ? `<p class="metric-card__helper">${metric.helper}</p>` : '';
+                    return `
+                        <article class="metric-card${accentClass}">
+                            <div class="metric-card__row">
+                                <p class="metric-card__label">${metric.label}</p>
+                            </div>
+                            <div class="metric-card__value">${metric.value}</div>
+                            ${helper}
+                        </article>
+                    `;
+                })
+                .join('');
         };
 
-        const updatedAtElement = document.getElementById('updatedAt');
-        if (updatedAtElement) {
-            updatedAtElement.textContent = state.updatedAt ?? '';
-        }
+        const renderUsageCards = (cards) => {
+            const container = document.getElementById('usageCards');
+            if (!container) {
+                return;
+            }
 
-        applyUsage('codex5h', state.codex5h);
-        applyUsage('codexWeekly', state.codexWeekly);
+            container.innerHTML = cards
+                .map((card) => `
+                    <article class="usage-card tone-${card.color}">
+                        <div class="usage-card__row">
+                            <p class="usage-card__label">${card.label}</p>
+                            <span class="usage-card__status">${card.status}</span>
+                        </div>
+                        <div class="usage-card__value">${card.percentage}%</div>
+                        <div class="usage-card__bar">
+                            <span class="usage-card__fill" style="width:${card.percentage}%;"></span>
+                        </div>
+                        <div class="usage-card__foot">
+                            <span>${card.windowLabel}</span>
+                            <span>${card.resetLabel}</span>
+                        </div>
+                    </article>
+                `)
+                .join('');
+        };
+
+        const renderTrend = (trend) => {
+            if (!trend) {
+                return;
+            }
+
+            setText('trendTotal', `${trend.label} total: ${trend.totalLabel}`);
+
+            const pathElement = document.getElementById('trendPath');
+            if (pathElement) {
+                pathElement.setAttribute('d', trend.path || '');
+            }
+
+            const axis = document.getElementById('trendAxis');
+            if (axis) {
+                axis.innerHTML = trend.yAxisLabels.map((label) => `<span>${label}</span>`).join('');
+            }
+
+            const labels = document.getElementById('trendLabels');
+            if (labels) {
+                const first = trend.points[0]?.label ?? '';
+                const middle = trend.points[Math.floor(trend.points.length / 2)]?.label ?? '';
+                const last = trend.points[trend.points.length - 1]?.label ?? '';
+                labels.innerHTML = `<span>${first}</span><span>${middle}</span><span>${last}</span>`;
+            }
+
+            document.querySelectorAll('.trend-toggle__button').forEach((button) => {
+                button.classList.toggle('is-active', button.dataset.timeframe === trend.id);
+            });
+        };
+
+        const renderTrendToggle = (trends, defaultTimeframe) => {
+            const toggle = document.getElementById('trendToggle');
+            if (!toggle) {
+                return null;
+            }
+
+            toggle.innerHTML = trends
+                .map((trend) => `
+                    <button class="trend-toggle__button${trend.id === defaultTimeframe ? ' is-active' : ''}" data-timeframe="${trend.id}">
+                        ${trend.label}
+                    </button>
+                `)
+                .join('');
+
+            toggle.addEventListener('click', (event) => {
+                const button = event.target instanceof Element
+                    ? event.target.closest('.trend-toggle__button')
+                    : null;
+                if (!button) {
+                    return;
+                }
+
+                const trend = trends.find((entry) => entry.id === button.dataset.timeframe);
+                renderTrend(trend);
+            });
+
+            return trends.find((trend) => trend.id === defaultTimeframe) ?? trends[0];
+        };
+
+        setText('updatedAt', state.updatedAt ?? '');
+        setText('scanSummary', state.scanSummary ?? '');
+        setText('pricingSummary', state.pricingSummary ?? '');
+        renderUsageCards(state.usageCards ?? []);
+        renderMetricCards('todayStats', state.todayStats ?? []);
+        renderMetricCards('financialStats', state.financialStats ?? []);
+
+        const initialTrend = renderTrendToggle(state.trends ?? [], state.defaultTimeframe);
+        renderTrend(initialTrend);
     </script>
 </body>
 </html>

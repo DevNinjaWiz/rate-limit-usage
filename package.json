@@ -1,7 +1,7 @@
 {
   "name": "rate-limit-usage",
   "displayName": "Rate Limit Usage",
-  "description": "Monitor Codex usage",
+  "description": "Monitor Codex rolling limits and API-equivalent cost inside VS Code",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.110.0"
@@ -17,9 +17,52 @@
     "commands": [
       {
         "command": "rateLimitUsage.showDashboard",
-        "title": "Show Codex Usage Dashboard"
+        "title": "Show Rate Limit Usage Dashboard"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Rate Limit Usage",
+      "properties": {
+        "rateLimitUsage.deepScanIntervalHours": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 168,
+          "default": 24,
+          "description": "How often the extension performs a deep rescan of the Codex session logs."
+        },
+        "rateLimitUsage.pricingModelPreference": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.4-nano"
+          ],
+          "default": "auto",
+          "description": "Pricing reference used for API-equivalent calculations. Auto uses the detected session model when available."
+        },
+        "rateLimitUsage.defaultChartTimeframe": {
+          "type": "string",
+          "enum": [
+            "1D",
+            "1W",
+            "1M"
+          ],
+          "default": "1W",
+          "description": "Default timeframe shown in the dashboard trend chart."
+        },
+        "rateLimitUsage.subscriptionOverride": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "plus",
+            "pro"
+          ],
+          "default": "auto",
+          "description": "Override the detected subscription plan for financial analysis."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
