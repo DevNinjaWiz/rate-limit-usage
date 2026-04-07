@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Rate Limit Dashboard</title>
+    <title>Codex Usage Dashboard</title>
     <style>
         :root {
             --bg-dark: #14141b;
             --bg-card: #1e1e29;
             --text-main: #f8f8f2;
             --text-muted: #8b8b9b;
-            --accent-purple: #9d8df1;
             --accent-green: #50fa7b;
             --accent-yellow: #f1fa8c;
             --accent-blue: #8be9fd;
@@ -64,10 +63,6 @@
 
         .dot.codex {
             background: var(--accent-blue);
-        }
-
-        .dot.claude {
-            background: var(--accent-purple);
         }
 
         .grid-2 {
@@ -158,58 +153,66 @@
 </head>
 <body>
     <div class="header">
-        <h1>AI Rate Limit Dashboarddd</h1>
-        <span class="last-updated">Updated: {{updatedAt}}</span>
+        <h1>Codex Usage Dashboard</h1>
+        <span class="last-updated">Updated: <span id="updatedAt"></span></span>
     </div>
 
     <div class="section-title"><span class="dot codex"></span>Codex</div>
     <div class="grid-2">
         <div class="card">
             <div class="card-label">5-Hour Window</div>
-            <div class="card-value {{codex5hColor}}">{{codex5hPct}}%</div>
-            <div class="progress-bar"><div class="progress-fill {{codex5hColor}}" style="width:{{codex5hPct}}%"></div></div>
+            <div id="codex5hValue" class="card-value"></div>
+            <div class="progress-bar"><div id="codex5hProgress" class="progress-fill"></div></div>
             <div class="card-footer">
-                <span>{{codex5hStatus}}</span>
-                <span>Resets in {{codex5hReset}}</span>
+                <span id="codex5hStatus"></span>
+                <span id="codex5hReset"></span>
             </div>
         </div>
         <div class="card">
             <div class="card-label">7-Day Rolling</div>
-            <div class="card-value {{codexWeeklyColor}}">{{codexWeeklyPct}}%</div>
-            <div class="progress-bar"><div class="progress-fill {{codexWeeklyColor}}" style="width:{{codexWeeklyPct}}%"></div></div>
+            <div id="codexWeeklyValue" class="card-value"></div>
+            <div class="progress-bar"><div id="codexWeeklyProgress" class="progress-fill"></div></div>
             <div class="card-footer">
-                <span>{{codexWeeklyStatus}}</span>
-                <span>Resets in {{codexWeeklyReset}}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="section-title"><span class="dot claude"></span>Claude</div>
-    <div class="grid-2">
-        <div class="card">
-            <div class="card-label">5-Hour Window</div>
-            <div class="card-value {{claude5hColor}}">{{claude5hPct}}%</div>
-            <div class="progress-bar"><div class="progress-fill {{claude5hColor}}" style="width:{{claude5hPct}}%"></div></div>
-            <div class="card-footer">
-                <span>{{claude5hStatus}}</span>
-                <span>Based on output tokens</span>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-label">7-Day Rolling</div>
-            <div class="card-value {{claudeWeeklyColor}}">{{claudeWeeklyPct}}%</div>
-            <div class="progress-bar"><div class="progress-fill {{claudeWeeklyColor}}" style="width:{{claudeWeeklyPct}}%"></div></div>
-            <div class="card-footer">
-                <span>{{claudeWeeklyStatus}}</span>
-                <span>Based on output tokens</span>
+                <span id="codexWeeklyStatus"></span>
+                <span id="codexWeeklyReset"></span>
             </div>
         </div>
     </div>
 
     <div class="note">
-        <strong>Note:</strong> Codex percentages are server-reported from <code>~/.codex/sessions/</code>.
-        Claude percentages are estimated from output tokens in <code>~/.claude/projects/</code> relative to configurable limits
-        (<code>rateLimitUsage.claudeLimit5hTokens</code> and <code>rateLimitUsage.claudeLimit7dTokens</code> in settings).
+        <strong>Note:</strong> Codex percentages are read from the latest <code>token_count</code> event in
+        <code>~/.codex/sessions/</code>, including the server-reported reset times for each window.
     </div>
+    <script id="dashboard-data" type="application/json">{{dashboardState}}</script>
+    <script>
+        const stateElement = document.getElementById('dashboard-data');
+        const state = JSON.parse(stateElement?.textContent ?? '{}');
+
+        const applyUsage = (prefix, usage) => {
+            const valueElement = document.getElementById(`${prefix}Value`);
+            const progressElement = document.getElementById(`${prefix}Progress`);
+            const statusElement = document.getElementById(`${prefix}Status`);
+            const resetElement = document.getElementById(`${prefix}Reset`);
+
+            if (!valueElement || !progressElement || !statusElement || !resetElement || !usage) {
+                return;
+            }
+
+            valueElement.textContent = `${usage.pct}%`;
+            valueElement.classList.add(usage.color);
+            progressElement.classList.add(usage.color);
+            progressElement.style.width = `${usage.pct}%`;
+            statusElement.textContent = usage.status;
+            resetElement.textContent = `Resets in ${usage.reset}`;
+        };
+
+        const updatedAtElement = document.getElementById('updatedAt');
+        if (updatedAtElement) {
+            updatedAtElement.textContent = state.updatedAt ?? '';
+        }
+
+        applyUsage('codex5h', state.codex5h);
+        applyUsage('codexWeekly', state.codexWeekly);
+    </script>
 </body>
 </html>

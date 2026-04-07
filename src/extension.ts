@@ -10,13 +10,8 @@ interface RateLimitData {
     weeklyResetsAt?: number;   // unix seconds
 }
 
-interface UsageData {
-    codex: RateLimitData;
-    claude: RateLimitData;
-}
-
-const DEFAULT_CLAUDE_LIMIT_5H_TOKENS = 46000;
-const DEFAULT_CLAUDE_LIMIT_7D_TOKENS = 400000;
+const STATUS_BAR_WARNING_FOREGROUND = '#f2cc60';
+const STATUS_BAR_ERROR_FOREGROUND = '#f48771';
 
 // --- Codex: read rate_limits from latest session's last token_count event ---
 function getCodexUsage(): RateLimitData {
@@ -69,67 +64,8 @@ function getCodexUsage(): RateLimitData {
     return { fiveHourPct: 0, weeklyPct: 0 };
 }
 
-// --- Claude: sum output_tokens in time windows, compare to configured limits ---
-function getClaudeUsage(): RateLimitData {
-    const projectsDir = path.join(os.homedir(), '.claude', 'projects');
-    if (!fs.existsSync(projectsDir)) {
-        return { fiveHourPct: 0, weeklyPct: 0 };
-    }
-
-    const config = vscode.workspace.getConfiguration('rateLimitUsage');
-    const limit5h: number = config.get('claudeLimit5hTokens', DEFAULT_CLAUDE_LIMIT_5H_TOKENS);
-    const limit7d: number = config.get('claudeLimit7dTokens', DEFAULT_CLAUDE_LIMIT_7D_TOKENS);
-
-    const now = Date.now();
-    const fiveHoursAgo = now - 5 * 60 * 60 * 1000;
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-    let tokens5h = 0;
-    let tokens7d = 0;
-
-    function processFile(filePath: string) {
-        try {
-            const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-            for (const line of lines) {
-                if (!line.trim()) { continue; }
-                try {
-                    const obj = JSON.parse(line);
-                    if (obj.type === 'assistant' && obj.message?.usage && obj.timestamp) {
-                        const ts = new Date(obj.timestamp).getTime();
-                        const outputTokens: number = obj.message.usage.output_tokens ?? 0;
-                        if (ts >= sevenDaysAgo) { tokens7d += outputTokens; }
-                        if (ts >= fiveHoursAgo) { tokens5h += outputTokens; }
-                    }
-                } catch { /* skip malformed lines */ }
-            }
-        } catch { /* skip unreadable files */ }
-    }
-
-    function walk(dir: string) {
-        try {
-            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-                const full = path.join(dir, entry.name);
-                if (entry.isDirectory() && entry.name !== 'subagents') {
-                    walk(full);
-                } else if (entry.name.endsWith('.jsonl')) {
-                    processFile(full);
-                }
-            }
-        } catch { /* ignore */ }
-    }
-    walk(projectsDir);
-
-    return {
-        fiveHourPct: Math.min(100, Math.round((tokens5h / limit5h) * 100)),
-        weeklyPct: Math.min(100, Math.round((tokens7d / limit7d) * 100)),
-    };
-}
-
-function readUsageData(): UsageData {
-    return {
-        codex: getCodexUsage(),
-        claude: getClaudeUsage(),
-    };
+function readUsageData(): RateLimitData {
+    return getCodexUsage();
 }
 
 function formatResetTime(resetsAt: number | undefined): string {
@@ -143,26 +79,35 @@ function formatResetTime(resetsAt: number | undefined): string {
 }
 
 function getPctColor(pct: number): string {
-    if (pct >= 80) { return 'red'; }
-    if (pct >= 50) { return 'yellow'; }
+    if (pct >= 90) { return 'red'; }
+    if (pct >= 70) { return 'yellow'; }
     return 'green';
+}
+
+function getStatusBarColor(pcts: number[]): string | undefined {
+    const max = Math.max(...pcts);
+    if (max >= 90) { return STATUS_BAR_ERROR_FOREGROUND; }
+    if (max >= 70) { return STATUS_BAR_WARNING_FOREGROUND; }
+    return undefined;
+}
+
+function formatStatusBarValue(pct: number): string {
+    return `${pct}%`;
 }
 
 export function activate(context: vscode.ExtensionContext) {
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.tooltip = 'Click to view Usage Dashboard';
+    statusBarItem.tooltip = 'Click to view Codex Usage Dashboard';
     statusBarItem.command = 'rateLimitUsage.showDashboard';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 
     function refresh() {
         const data = readUsageData();
-        const c5 = data.codex.fiveHourPct;
-        const cw = data.codex.weeklyPct;
-        const cl5 = data.claude.fiveHourPct;
-        const clw = data.claude.weeklyPct;
-        // Status bar: "Codex 5H:12% W:78%  Claude 5H:5% W:20%"
-        statusBarItem.text = `$(repl) Codex 5H:${c5}% W:${cw}%   Claude 5H:${cl5}% W:${clw}%`;
+        const c5 = data.fiveHourPct;
+        const cw = data.weeklyPct;
+        statusBarItem.text = `$(repl) 5H: ${formatStatusBarValue(c5)} Weekly: ${formatStatusBarValue(cw)}`;
+        statusBarItem.color = getStatusBarColor([c5, cw]);
         if (DashboardPanel.currentPanel) {
             DashboardPanel.currentPanel.update(data);
         }
@@ -185,7 +130,7 @@ class DashboardPanel {
     private readonly _htmlTemplate: string;
     private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(_extensionUri: vscode.Uri, data: UsageData) {
+    public static createOrShow(_extensionUri: vscode.Uri, data: RateLimitData) {
         const column = vscode.window.activeTextEditor?.viewColumn;
         if (DashboardPanel.currentPanel) {
             DashboardPanel.currentPanel._panel.reveal(column);
@@ -194,14 +139,14 @@ class DashboardPanel {
         }
         const panel = vscode.window.createWebviewPanel(
             'rateLimitDashboard',
-            'AI Rate Limit Dashboard',
+            'Codex Usage Dashboard',
             column || vscode.ViewColumn.One,
             { enableScripts: true }
         );
         DashboardPanel.currentPanel = new DashboardPanel(panel, _extensionUri, data);
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, data: UsageData) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, data: RateLimitData) {
         this._panel = panel;
         this._htmlTemplate = fs.readFileSync(
             path.join(extensionUri.fsPath, 'dashboard.html'),
@@ -211,7 +156,7 @@ class DashboardPanel {
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     }
 
-    public update(data: UsageData) {
+    public update(data: RateLimitData) {
         this._panel.webview.html = this._getHtml(data);
     }
 
@@ -223,31 +168,30 @@ class DashboardPanel {
         }
     }
 
-    private _getHtml(data: UsageData): string {
-        const { codex, claude } = data;
-        const codex5hColor = getPctColor(codex.fiveHourPct);
-        const codexWeeklyColor = getPctColor(codex.weeklyPct);
-        const claude5hColor = getPctColor(claude.fiveHourPct);
-        const claudeWeeklyColor = getPctColor(claude.weeklyPct);
+    private _getHtml(data: RateLimitData): string {
+        const codex5hColor = getPctColor(data.fiveHourPct);
+        const codexWeeklyColor = getPctColor(data.weeklyPct);
 
-        const codex5hReset = formatResetTime(codex.fiveHourResetsAt);
-        const codexWeeklyReset = formatResetTime(codex.weeklyResetsAt);
+        const codex5hReset = formatResetTime(data.fiveHourResetsAt);
+        const codexWeeklyReset = formatResetTime(data.weeklyResetsAt);
+        const dashboardState = JSON.stringify({
+            updatedAt: new Date().toLocaleTimeString(),
+            codex5h: {
+                pct: data.fiveHourPct,
+                color: codex5hColor,
+                status: this._getStatusLabel(codex5hColor),
+                reset: codex5hReset,
+            },
+            codexWeekly: {
+                pct: data.weeklyPct,
+                color: codexWeeklyColor,
+                status: this._getStatusLabel(codexWeeklyColor),
+                reset: codexWeeklyReset,
+            },
+        }).replace(/</g, '\\u003c');
+
         return this._htmlTemplate
-            .replaceAll('{{updatedAt}}', new Date().toLocaleTimeString())
-            .replaceAll('{{codex5hColor}}', codex5hColor)
-            .replaceAll('{{codex5hPct}}', String(codex.fiveHourPct))
-            .replaceAll('{{codex5hStatus}}', this._getStatusLabel(codex5hColor))
-            .replaceAll('{{codex5hReset}}', codex5hReset)
-            .replaceAll('{{codexWeeklyColor}}', codexWeeklyColor)
-            .replaceAll('{{codexWeeklyPct}}', String(codex.weeklyPct))
-            .replaceAll('{{codexWeeklyStatus}}', this._getStatusLabel(codexWeeklyColor))
-            .replaceAll('{{codexWeeklyReset}}', codexWeeklyReset)
-            .replaceAll('{{claude5hColor}}', claude5hColor)
-            .replaceAll('{{claude5hPct}}', String(claude.fiveHourPct))
-            .replaceAll('{{claude5hStatus}}', this._getStatusLabel(claude5hColor))
-            .replaceAll('{{claudeWeeklyColor}}', claudeWeeklyColor)
-            .replaceAll('{{claudeWeeklyPct}}', String(claude.weeklyPct))
-            .replaceAll('{{claudeWeeklyStatus}}', this._getStatusLabel(claudeWeeklyColor));
+            .replace('{{dashboardState}}', dashboardState);
     }
 
     private _getStatusLabel(color: string): string {

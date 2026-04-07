@@ -1,7 +1,7 @@
 {
   "name": "rate-limit-usage",
   "displayName": "Rate Limit Usage",
-  "description": "Monitor AI usage",
+  "description": "Monitor Codex usage",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.110.0"
@@ -16,8 +16,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "claude-dashboard.show",
-        "title": "Show Claude Usage Dashboard"
+        "command": "rateLimitUsage.showDashboard",
+        "title": "Show Codex Usage Dashboard"
       }
     ]
   },
