@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Rate Limit Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #14141b;
+            --bg-card: #1e1e29;
+            --text-main: #f8f8f2;
+            --text-muted: #8b8b9b;
+            --accent-purple: #9d8df1;
+            --accent-green: #50fa7b;
+            --accent-yellow: #f1fa8c;
+            --accent-blue: #8be9fd;
+            --accent-red: #ff5555;
+            --border-color: #2e2e3e;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px 40px;
+            margin: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 24px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.codex {
+            background: var(--accent-blue);
+        }
+
+        .dot.claude {
+            background: var(--accent-purple);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 18px 20px;
+        }
+
+        .card-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 8px 0 4px;
+        }
+
+        .green {
+            color: var(--accent-green);
+        }
+
+        .yellow {
+            color: var(--accent-yellow);
+        }
+
+        .red {
+            color: var(--accent-red);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2a3a;
+            border-radius: 4px;
+            margin: 8px 0 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.green {
+            background: var(--accent-green);
+        }
+
+        .progress-fill.yellow {
+            background: var(--accent-yellow);
+        }
+
+        .progress-fill.red {
+            background: var(--accent-red);
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .note {
+            margin-top: 24px;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AI Rate Limit Dashboarddd</h1>
+        <span class="last-updated">Updated: {{updatedAt}}</span>
+    </div>
+
+    <div class="section-title"><span class="dot codex"></span>Codex</div>
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-label">5-Hour Window</div>
+            <div class="card-value {{codex5hColor}}">{{codex5hPct}}%</div>
+            <div class="progress-bar"><div class="progress-fill {{codex5hColor}}" style="width:{{codex5hPct}}%"></div></div>
+            <div class="card-footer">
+                <span>{{codex5hStatus}}</span>
+                <span>Resets in {{codex5hReset}}</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">7-Day Rolling</div>
+            <div class="card-value {{codexWeeklyColor}}">{{codexWeeklyPct}}%</div>
+            <div class="progress-bar"><div class="progress-fill {{codexWeeklyColor}}" style="width:{{codexWeeklyPct}}%"></div></div>
+            <div class="card-footer">
+                <span>{{codexWeeklyStatus}}</span>
+                <span>Resets in {{codexWeeklyReset}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title"><span class="dot claude"></span>Claude</div>
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-label">5-Hour Window</div>
+            <div class="card-value {{claude5hColor}}">{{claude5hPct}}%</div>
+            <div class="progress-bar"><div class="progress-fill {{claude5hColor}}" style="width:{{claude5hPct}}%"></div></div>
+            <div class="card-footer">
+                <span>{{claude5hStatus}}</span>
+                <span>Based on output tokens</span>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">7-Day Rolling</div>
+            <div class="card-value {{claudeWeeklyColor}}">{{claudeWeeklyPct}}%</div>
+            <div class="progress-bar"><div class="progress-fill {{claudeWeeklyColor}}" style="width:{{claudeWeeklyPct}}%"></div></div>
+            <div class="card-footer">
+                <span>{{claudeWeeklyStatus}}</span>
+                <span>Based on output tokens</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>Note:</strong> Codex percentages are server-reported from <code>~/.codex/sessions/</code>.
+        Claude percentages are estimated from output tokens in <code>~/.claude/projects/</code> relative to configurable limits
+        (<code>rateLimitUsage.claudeLimit5hTokens</code> and <code>rateLimitUsage.claudeLimit7dTokens</code> in settings).
+    </div>
+</body>
+</html>

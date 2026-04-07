@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import sys,json; [print\\(json.dumps\\(json.loads\\(l\\), indent=2\\)\\) for l in sys.stdin]\")",
+      "Bash(xargs grep:*)",
+      "Bash(python3 -c \"import sys,json; d=json.loads\\(sys.stdin.read\\(\\)\\); print\\(json.dumps\\(d.get\\('payload',{}\\).get\\('usage', d.get\\('usage',{}\\)\\), indent=2\\)\\)\")",
+      "Bash(grep -h 'rateLimitWarning\\\\|rate_limit\\\\|usagePercentage\\\\|5h\\\\|5H\\\\|window' ~/.claude/projects/c--TFS-Tranglo1-CustomerFrontend/6466516a-6741-459b-ba11-36fbd61bac76/*.jsonl)"
+    ]
+  }
+}

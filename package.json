@@ -9,13 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "rate-limit-usage.helloWorld",
-        "title": "Hello World"
+        "command": "claude-dashboard.show",
+        "title": "Show Claude Usage Dashboard"
       }
     ]
   },
